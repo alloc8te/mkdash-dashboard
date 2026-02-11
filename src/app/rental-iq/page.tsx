@@ -154,7 +154,7 @@ export default function RentalIQDashboard() {
               startDate: m.startDate,
               endDate: m.endDate,
               status: m.overallStatus,
-              percentComplete: m.percentComplete,
+              percentComplete: m.taskCompletionPct,
             }))}
           />
         </div>

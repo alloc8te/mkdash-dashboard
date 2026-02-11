@@ -5,10 +5,13 @@
 export interface RIQMilestone {
   activityId: number;
   activityName: string;
+  milestoneWeight: number;        // New: Milestone Weight (0-1)
+  taskCompletionPct: number;      // New: Task Completion % (0-1)
   startDate: string;
   endDate: string;
   overallStatus: string;
-  percentComplete: number;
+  owner: string;                  // New: Owner
+  comments?: string;              // New: Comments (optional)
 }
 
 export interface RIQActivity {
@@ -51,6 +54,7 @@ export interface RIQDevTask {
   date: string;
   open: number;
   completed: number;
+  onHold?: number;  // New: On-Hold tasks (optional)
 }
 
 export interface RIQMarketAnalytics {

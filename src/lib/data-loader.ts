@@ -30,8 +30,16 @@ function getExcelPath(): string {
   if (process.env.EXCEL_PATH) {
     return process.env.EXCEL_PATH;
   }
-  // Default: data/ folder in project root
-  return path.join(process.cwd(), 'data', 'RIQ & AB_InputFile.xlsx');
+  // Default: data/ folder in project root - try new file first, fallback to old
+  const newPath = path.join(process.cwd(), 'data', 'Dashboard Input File - RIQ.xlsx');
+  const oldPath = path.join(process.cwd(), 'data', 'RIQ & AB_InputFile.xlsx');
+
+  // Check if new file exists
+  if (fs.existsSync(newPath)) {
+    return newPath;
+  }
+  // Fallback to old file for backward compatibility
+  return oldPath;
 }
 
 function readWorkbook(): XLSX.WorkBook {
@@ -88,17 +96,20 @@ function formatDate(sheet: XLSX.WorkSheet, ref: string): string {
 
 function parseRentalIQMilestones(ws: XLSX.WorkSheet): RIQMilestone[] {
   const milestones: RIQMilestone[] = [];
-  // Table 1 starts at row 2 (header), data rows 3-12
-  for (let r = 3; r <= 12; r++) {
+  // Milestone Tracker sheet: Row 1 = "Table 1", Row 2 = Headers, Row 3+ = Data
+  for (let r = 3; r <= 50; r++) {
     const id = cellNum(ws, `A${r}`);
-    if (!id) break;
+    if (!id) break; // Stop at first empty row
     milestones.push({
       activityId: id,
-      activityName: cellVal(ws, `B${r}`),
-      startDate: formatDate(ws, `C${r}`),
-      endDate: formatDate(ws, `D${r}`),
-      overallStatus: cellVal(ws, `E${r}`),
-      percentComplete: cellNum(ws, `F${r}`),
+      activityName: cellVal(ws, `B${r}`),         // Column B: Milestone Name
+      milestoneWeight: cellNum(ws, `C${r}`),      // Column C: Milestone Weight
+      taskCompletionPct: cellNum(ws, `D${r}`),    // Column D: Task Completion %
+      startDate: formatDate(ws, `G${r}`),         // Column G: StartDate
+      endDate: formatDate(ws, `H${r}`),           // Column H: EndDate
+      overallStatus: cellVal(ws, `I${r}`),        // Column I: OverallStatus
+      owner: cellVal(ws, `J${r}`),                // Column J: Owner
+      comments: cellVal(ws, `K${r}`),             // Column K: Comments
     });
   }
   return milestones;
@@ -106,21 +117,21 @@ function parseRentalIQMilestones(ws: XLSX.WorkSheet): RIQMilestone[] {
 
 function parseRentalIQActivities(ws: XLSX.WorkSheet): RIQActivity[] {
   const activities: RIQActivity[] = [];
-  // Table 2 starts at row 15 (header), data rows 16-34
-  for (let r = 16; r <= 34; r++) {
+  // Activity Tracker sheet: Row 1 = "Table 2", Row 2 = Headers, Row 3+ = Data
+  for (let r = 3; r <= 50; r++) {
     const id = cellNum(ws, `A${r}`);
-    if (!id) break;
+    if (!id) break; // Stop at first empty row
     activities.push({
-      subTaskId: id,
-      parentId: cellNum(ws, `B${r}`),
-      activityName: cellVal(ws, `C${r}`),
-      subTaskName: cellVal(ws, `D${r}`),
-      status: cellVal(ws, `E${r}`),
-      owner: cellVal(ws, `F${r}`),
-      subEndDate: formatDate(ws, `G${r}`),
-      priority: cellVal(ws, `H${r}`),
-      currentDate: formatDate(ws, `I${r}`),
-      comments: cellVal(ws, `J${r}`),
+      subTaskId: id,                              // Column A: TaskID
+      parentId: cellNum(ws, `B${r}`),             // Column B: ActivityID
+      activityName: cellVal(ws, `C${r}`),         // Column C: Milestone Name (VLOOKUP)
+      subTaskName: cellVal(ws, `D${r}`),          // Column D: Task Name
+      status: cellVal(ws, `E${r}`),               // Column E: Status
+      owner: cellVal(ws, `F${r}`),                // Column F: Owner
+      subEndDate: formatDate(ws, `G${r}`),        // Column G: End Date
+      priority: cellVal(ws, `H${r}`),             // Column H: Priority
+      currentDate: formatDate(ws, `I${r}`),       // Column I: Current Date
+      comments: cellVal(ws, `J${r}`),             // Column J: Comments
     });
   }
   return activities;
@@ -128,20 +139,26 @@ function parseRentalIQActivities(ws: XLSX.WorkSheet): RIQActivity[] {
 
 function parseRentalIQMilestoneCompletion(ws: XLSX.WorkSheet): RIQMilestoneCompletion[] {
   const completions: RIQMilestoneCompletion[] = [];
-  // Table 3 starts at row 37 (header), data rows 38-47
-  for (let r = 38; r <= 47; r++) {
+  // Milestone Tracker sheet contains completion data
+  // Row 1 = "Table 1", Row 2 = Headers, Row 3+ = Data
+  for (let r = 3; r <= 50; r++) {
     const id = cellNum(ws, `A${r}`);
-    if (!id && r > 38) break;
-    if (!id) continue;
+    if (!id) break; // Stop at first empty row
+
+    const weight = cellNum(ws, `C${r}`);              // Column C: Milestone Weight
+    const taskPct = cellNum(ws, `D${r}`);             // Column D: Task Completion %
+    const completionPct = cellNum(ws, `E${r}`);       // Column E: Completion % (by weight) - formula result
+    const cumulativePct = cellNum(ws, `F${r}`);       // Column F: Overall Cumulative Completion %
+
     completions.push({
       activityId: id,
-      activityName: cellVal(ws, `B${r}`),
-      taskCompletionPct: cellNum(ws, `C${r}`),
-      milestoneWeight: cellNum(ws, `D${r}`),
-      completionPct: cellNum(ws, `E${r}`),
-      status: cellVal(ws, `F${r}`),
-      cumulativeCompletionPct: cellNum(ws, `G${r}`),
-      owner: cellVal(ws, `H${r}`),
+      activityName: cellVal(ws, `B${r}`),             // Column B: Milestone Name
+      taskCompletionPct: taskPct,
+      milestoneWeight: weight,
+      completionPct: completionPct || (weight * taskPct), // Use formula value or calculate
+      status: cellVal(ws, `I${r}`),                   // Column I: OverallStatus
+      cumulativeCompletionPct: cumulativePct,
+      owner: cellVal(ws, `J${r}`),                    // Column J: Owner
     });
   }
   return completions;
@@ -149,20 +166,20 @@ function parseRentalIQMilestoneCompletion(ws: XLSX.WorkSheet): RIQMilestoneCompl
 
 function parseRentalIQRisks(ws: XLSX.WorkSheet): RIQRisk[] {
   const risks: RIQRisk[] = [];
-  // Table 4 on "Rental IQ 2" sheet, row 3 header, data rows 4-8
-  for (let r = 4; r <= 8; r++) {
+  // Tech-Business Risk sheet: Row 1 = "Table 3", Row 2 = Headers, Row 3+ = Data
+  for (let r = 3; r <= 50; r++) {
     const id = cellNum(ws, `A${r}`);
-    if (!id) break;
+    if (!id) break; // Stop at first empty row
     risks.push({
-      srNo: id,
-      risk: cellVal(ws, `B${r}`),
-      probability: cellVal(ws, `C${r}`),
-      impact: cellVal(ws, `D${r}`),
-      status: cellVal(ws, `E${r}`),
-      riskOwner: cellVal(ws, `F${r}`),
-      mitigationPlan: cellVal(ws, `G${r}`),
-      mitigationStatus: cellVal(ws, `H${r}`),
-      comments: cellVal(ws, `I${r}`),
+      srNo: id,                                   // Column A: RAID ID
+      risk: cellVal(ws, `C${r}`),                 // Column C: Description
+      probability: cellVal(ws, `E${r}`),          // Column E: Likelihood
+      impact: cellVal(ws, `D${r}`),               // Column D: Impact
+      status: cellVal(ws, `J${r}`),               // Column J: Status
+      riskOwner: cellVal(ws, `G${r}`),            // Column G: Owner
+      mitigationPlan: cellVal(ws, `H${r}`),       // Column H: Mitigation
+      mitigationStatus: cellVal(ws, `J${r}`),     // Column J: Status (same as status)
+      comments: cellVal(ws, `K${r}`),             // Column K: Comments
     });
   }
   return risks;
@@ -170,14 +187,15 @@ function parseRentalIQRisks(ws: XLSX.WorkSheet): RIQRisk[] {
 
 function parseRentalIQDevTasks(ws: XLSX.WorkSheet): RIQDevTask[] {
   const tasks: RIQDevTask[] = [];
-  // Table 5 on "Rental IQ 2" sheet, row 12 header, data rows 13-17+
-  for (let r = 13; r <= 50; r++) {
+  // Dev Velocity sheet: Row 1 = "Table 4", Row 2 = Headers, Row 3+ = Data
+  for (let r = 3; r <= 50; r++) {
     const dateVal = formatDate(ws, `A${r}`);
-    if (!dateVal) break;
+    if (!dateVal) break; // Stop at first empty row
     tasks.push({
-      date: dateVal,
-      open: cellNum(ws, `B${r}`),
-      completed: cellNum(ws, `C${r}`),
+      date: dateVal,                        // Column A: Date
+      open: cellNum(ws, `B${r}`),           // Column B: Open
+      completed: cellNum(ws, `C${r}`),      // Column C: Completed
+      onHold: cellNum(ws, `D${r}`),         // Column D: On-Hold
     });
   }
   return tasks;
@@ -380,25 +398,28 @@ function parseABDevTasks(ws: XLSX.WorkSheet): ABDevTask[] {
 export function loadRentalIQData(): RentalIQData {
   const wb = readWorkbook();
 
-  const wsMain = wb.Sheets['Rental IQ'];
-  const wsSecond = wb.Sheets['Rental IQ 2'];
-  const wsInsights = wb.Sheets['RI Insights'];
+  // New sheet structure - each table has its own sheet
+  const wsMilestones = wb.Sheets['Milestone Tracker'];
+  const wsActivities = wb.Sheets['Activity Tracker'];
+  const wsRisks = wb.Sheets['Tech-Business Risk'];
+  const wsDevVelocity = wb.Sheets['Dev Velocity'];
 
-  const milestoneCompletion = parseRentalIQMilestoneCompletion(wsMain);
+  // Milestone completion is derived from Milestone Tracker
+  const milestoneCompletion = parseRentalIQMilestoneCompletion(wsMilestones);
   const lastCompletion = milestoneCompletion[milestoneCompletion.length - 1];
   const cumulativeCompletion = lastCompletion ? lastCompletion.cumulativeCompletionPct : 0;
 
   return {
-    milestones: parseRentalIQMilestones(wsMain),
-    activities: parseRentalIQActivities(wsMain),
+    milestones: parseRentalIQMilestones(wsMilestones),
+    activities: parseRentalIQActivities(wsActivities),
     milestoneCompletion,
     cumulativeCompletion,
-    risks: parseRentalIQRisks(wsSecond),
-    devTasks: parseRentalIQDevTasks(wsSecond),
+    risks: parseRentalIQRisks(wsRisks),
+    devTasks: parseRentalIQDevTasks(wsDevVelocity),
     insights: {
-      marketAnalytics: parseRIQMarketAnalytics(wsInsights),
-      platformInsights: parseRIQPlatformInsights(wsInsights),
-      affordabilityRating: parseRIQAffordabilityRating(wsInsights),
+      marketAnalytics: [], // Not in new template
+      platformInsights: [], // Not in new template
+      affordabilityRating: [], // Not in new template
     },
   };
 }
