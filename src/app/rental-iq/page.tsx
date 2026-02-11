@@ -7,7 +7,6 @@ import KPICard from '@/components/KPICard';
 import GanttChart from '@/components/GanttChart';
 import MilestoneProgress from '@/components/MilestoneProgress';
 import ActivityTable from '@/components/ActivityTable';
-import StatusDonut from '@/components/StatusDonut';
 import RiskHeatmap from '@/components/RiskHeatmap';
 import DevVelocity from '@/components/DevVelocity';
 
@@ -64,17 +63,10 @@ export default function RentalIQDashboard() {
   }
 
   // Compute KPI values
-  const overallPct = Math.round(data.cumulativeCompletion * 100);
   const activeMilestones = data.milestones.filter(
     m => m.overallStatus.toLowerCase().includes('progress') || m.overallStatus.toLowerCase().includes('delayed')
   ).length;
   const totalMilestones = data.milestones.length;
-
-  const statusCounts: Record<string, number> = {};
-  data.activities.forEach(a => {
-    const s = a.status;
-    statusCounts[s] = (statusCounts[s] || 0) + 1;
-  });
 
   const completedTasks = data.activities.filter(
     a => a.status.toLowerCase().includes('completed')
@@ -84,22 +76,11 @@ export default function RentalIQDashboard() {
     a => a.status.toLowerCase().includes('progress')
   ).length;
 
-  const highImpactRisks = data.risks.filter(
-    r => r.impact.toLowerCase() === 'high'
-  ).length;
-
   return (
     <div className="tv-viewport">
-      {/* Left Panel: Tabs + KPIs + Milestone Progress + Status Donut */}
+      {/* Left Panel: Tabs + KPIs */}
       <div className="kpi-sidebar">
         <TabNav />
-        <KPICard
-          label="Overall Progress"
-          value={`${overallPct}%`}
-          subtitle={`${totalMilestones} milestones`}
-          icon="&#9672;"
-          gradient="blue"
-        />
         <KPICard
           label="Milestones Active"
           value={`${activeMilestones}/${totalMilestones}`}
@@ -114,25 +95,6 @@ export default function RentalIQDashboard() {
           icon="&#9744;"
           gradient="green"
         />
-        <KPICard
-          label="Open Risks"
-          value={String(data.risks.length)}
-          subtitle={`${highImpactRisks} high impact`}
-          icon="&#9888;"
-          gradient="red"
-        />
-
-        {/* Status Donut - expanded to fill remaining space */}
-        <div className="card card-accent-gold donut-wrapper" style={{ flex: 1 }}>
-          <div className="section-title">
-            <span className="dot dot-gold" />
-            Status
-          </div>
-          <StatusDonut
-            statusCounts={statusCounts}
-            totalLabel="Tasks"
-          />
-        </div>
       </div>
 
       {/* Right: Row 1 — Gantt Timeline (same width as Activity Tracker) */}
