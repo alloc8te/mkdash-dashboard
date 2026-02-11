@@ -166,7 +166,7 @@ function parseRentalIQMilestoneCompletion(ws: XLSX.WorkSheet): RIQMilestoneCompl
 
 function parseRentalIQRisks(ws: XLSX.WorkSheet): RIQRisk[] {
   const risks: RIQRisk[] = [];
-  // Tech-Business Risk sheet: Row 1 = "Table 3", Row 2 = Headers, Row 3+ = Data
+  // Tech To Business Alerts sheet: Row 1 = "Table 3", Row 2 = Headers, Row 3+ = Data
   for (let r = 3; r <= 50; r++) {
     const id = cellNum(ws, `A${r}`);
     if (!id) break; // Stop at first empty row
@@ -401,7 +401,7 @@ export function loadRentalIQData(): RentalIQData {
   // New sheet structure - each table has its own sheet
   const wsMilestones = wb.Sheets['Milestone Tracker'];
   const wsActivities = wb.Sheets['Activity Tracker'];
-  const wsRisks = wb.Sheets['Tech-Business Risk'];
+  const wsRisks = wb.Sheets['Tech To Business Alerts'];
   const wsDevVelocity = wb.Sheets['Dev Velocity'];
 
   // Milestone completion is derived from Milestone Tracker

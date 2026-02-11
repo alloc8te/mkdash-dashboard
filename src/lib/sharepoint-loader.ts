@@ -395,7 +395,7 @@ export async function loadRentalIQDataFromSharePoint(): Promise<RentalIQData> {
 
   const wsMilestones = wb.Sheets['Milestone Tracker'];
   const wsActivities = wb.Sheets['Activity Tracker'];
-  const wsRisks = wb.Sheets['Tech-Business Risk'];
+  const wsRisks = wb.Sheets['Tech To Business Alerts'];
   const wsDevVelocity = wb.Sheets['Dev Velocity'];
 
   const milestoneCompletion = parseRentalIQMilestoneCompletion(wsMilestones);

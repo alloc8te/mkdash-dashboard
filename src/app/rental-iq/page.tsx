@@ -158,7 +158,7 @@ export default function RentalIQDashboard() {
             }))}
           />
         </div>
-        {/* Milestones Progress - above Risk Register */}
+        {/* Milestones Progress - above Tech To Business Alerts */}
         <div className="card card-accent-purple">
           <div className="section-title">
             <span className="dot dot-purple" />
@@ -171,7 +171,7 @@ export default function RentalIQDashboard() {
         </div>
       </div>
 
-      {/* Right: Row 2 — Activity Tracker + (Risk Register + Dev Velocity stacked) */}
+      {/* Right: Row 2 — Activity Tracker + (Tech To Business Alerts + Dev Velocity stacked) */}
       <div className="dashboard-grid-equal" style={{ gridTemplateColumns: '1fr 0.7fr' }}>
         <div className="card card-accent-green">
           <div className="section-title">
@@ -181,12 +181,12 @@ export default function RentalIQDashboard() {
           <ActivityTable activities={data.activities} />
         </div>
 
-        {/* Right column: Risk Register + Dev Velocity stacked */}
+        {/* Right column: Tech To Business Alerts + Dev Velocity stacked */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <div className="card card-accent-red" style={{ flex: 1 }}>
             <div className="section-title">
               <span className="dot dot-red" />
-              Risk Register
+              Tech To Business Alerts
             </div>
             <RiskHeatmap risks={data.risks} />
           </div>
